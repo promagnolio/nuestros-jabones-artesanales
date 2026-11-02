@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esencia Natural - Catálogo de Jabones</title>
+    
+    <!-- ESTILOS CSS UNIFICADOS -->
+    <style>
+        :root {
+            --color-principal: #6e8b74; /* Verde sutil/orgánico */
+            --color-fondo: #fcfaf7;
+            --color-tarjeta: #ffffff;
+            --color-texto: #333333;
+            --fuente: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--color-fondo);
+            color: var(--color-texto);
+            font-family: var(--fuente);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--color-principal);
+            color: white;
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+
+        header p {
+            margin: 0.5rem 0 0 0;
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        .contenedor {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--color-principal);
+            margin-bottom: 2rem;
+        }
+
+        .grilla-productos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .tarjeta-producto {
+            background-color: var(--color-tarjeta);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 1.5rem;
+            border: 1px solid #e2dbd5;
+            transition: transform 0.2s;
+        }
+
+        .tarjeta-producto:hover {
+            transform: translateY(-5px);
+        }
+
+        .tarjeta-producto img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            background-color: #eee;
+        }
+
+        .tarjeta-producto h3 {
+            margin: 1rem 0 0.5rem 0;
+            color: #4a5d4e;
+        }
+
+        .tarjeta-producto .descripcion {
+            font-size: 0.9rem;
+            color: #666;
+            flex-grow: 1;
+            margin-bottom: 1rem;
+        }
+
+        .tarjeta-producto .precio {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--color-principal);
+            margin: 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+            font-size: 0.9rem;
+            color: #888;
+            border-top: 1px solid #e2dbd5;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Esencia Natural</h1>
+        <p>Jabones artesanales hechos con amor y la pureza de la naturaleza</p>
+    </header>
+
+    <main class="contenedor">
+        <h2>Nuestro Catálogo</h2>
+        <div id="catalogo" class="grilla-productos"></div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Esencia Natural - Catálogo Informativo.</p>
+    </footer>
+
+    <!-- LÓGICA JAVASCRIPT CORREGIDA -->
+    <script>
+        // =========================================================================
+        // PEGA AQUÍ TU ENLACE LARGO DE GOOGLE SHEETS (DEBE TERMINAR EN output=csv)
+        // =========================================================================
+        const URL_PUBLICADA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRLu0ERiMSLBSk41bK8CwUxtKp3TqnVN6wtLP6YqTqCnS7hEnbZ8skMvJt80AMedjpzqfD_WtX7ouhL/pub?output=csv";
+
+        async function cargarCatalogo() {
+            const contenedor = document.getElementById("catalogo");
+            contenedor.innerHTML = "<p style='text-align:center; grid-column: 1/-1;'>Cargando catálogo natural...</p>";
+
+            try {
+                const respuesta = await fetch(URL_PUBLICADA);
+                if (!respuesta.ok) throw new Error("No se pudo obtener respuesta de Google Sheets");
+                
+                const textoCSV = await respuesta.text();
+                const productos = procesarCSVPro(textoCSV);
+                
+                contenedor.innerHTML = ""; 
+
+                if (productos.length === 0) {
+                    contenedor.innerHTML = "<p style='text-align:center; grid-column: 1/-1;'>No hay productos válidos en tu Google Sheet en este momento.</p>";
+                    return;
+                }
+
+                productos.forEach(jabón => {
+                    const tarjeta = document.createElement("div");
+                    tarjeta.classList.add("tarjeta-producto");
+
+                    // Limpieza del precio por si pusiste símbolos raros en la celda
+                    let precioLimpio = parseFloat(jabón.precio.replace(/[^0-9.]/g, ''));
+                    if (isNaN(precioLimpio)) precioLimpio = 0;
+
+                    tarjeta.innerHTML = `
+                        <img src="${jabón.imagen || 'https://placeholder.com'}" alt="${jabón.nombre}" onerror="this.src='https://placeholder.com?text=Error+Imagen'">
+                        <h3>${jabón.nombre}</h3>
+                        <p class="descripcion">${jabón.descripcion}</p>
+                        <p class="precio">$${precioLimpio.toFixed(2)}</p>
+                    `;
+
+                    contenedor.appendChild(tarjeta);
+                });
+
+            } catch (error) {
+                console.error("Error al leer el CSV:", error);
+                contenedor.innerHTML = "<p style='text-align:center; color:red; grid-column: 1/-1;'>⚠️ Error al conectar con el catálogo.<br><br>Por favor comprueba que tu enlace de Google Sheets esté bien pegado y que esté publicado como .csv</p>";
+            }
+        }
+
+        // Lector avanzado de CSV tolerante a comas internas y textos complejos
+        function procesarCSVPro(texto) {
+            // Dividir por líneas dinámicamente tolerando formatos Mac/Windows
+            const lineas = texto.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+            if (lineas.length <= 1) return [];
+
+            // Procesar cabeceras quitando comillas
+            const cabeceras = separarCeldasCSV(lineas[0]).map(h => h.toLowerCase());
+            const resultado = [];
+
+            for (let i = 1; i < lineas.length; i++) {
+                const valoresCeldas = separarCeldasCSV(lineas[i]);
+                const filaObjeto = {};
+
+                cabeceras.forEach((titulo, index) => {
+                    filaObjeto[titulo] = valoresCeldas[index] || "";
+                });
+
+                // Solo agregamos el producto si al menos tiene un nombre escrito
+                if (filaObjeto.nombre && filaObjeto.nombre.trim() !== "") {
+                    resultado.push(filaObjeto);
+                }
+            }
+            return resultado;
+        }
+
+        // Función matemática exacta para separar CSV separando por comas externas e ignorando comas internas de textos largos
+        function separarCeldasCSV(linea) {
+            const resultado = [];
+            let enComillas = false;
+            let celdaActual = "";
+
+            for (let i = 0; i < linea.length; i++) {
+                let caracter = linea[i];
+
+                if (caracter === '"' || caracter === "'") {
+                    enComillas = !enComillas; // Alternar estado si entra o sale de comillas
+                } else if (caracter === ',' && !enComillas) {
+                    resultado.push(celdaActual.trim());
+                    celdaActual = "";
+                } else {
+                    celdaActual += caracter;
+                }
+            }
+            resultado.push(celdaActual.trim());
+            return resultado;
+        }
+
+        document.addEventListener("DOMContentLoaded", cargarCatalogo);
+    </script>
+</body>
+</html>
